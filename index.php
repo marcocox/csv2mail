@@ -114,10 +114,25 @@ function parse_csv() {
                     </div>
                     <div class="form-group">
                         <label for="email_contect">Email body:</label>
-                        <textarea class="form-control" id="email_body" name="email_body" cols="40" rows="20"></textarea>
+                        <textarea class="form-control" id="email_body" name="email_body" cols="40" rows="14"></textarea>
                     </div>
-                    <button type="button" class="btn btn-primary">Review email &amp; continue</button>
+                    <button type="button" id="button_review" class="btn btn-primary">Done, review the email</button>
                 </form>
+            </div>
+
+            <div class="step" id="step_review" style="display:none;">
+                <a name="review"></a><h1>Step 3: Review email</h1>
+                <p class="text-muted">
+                    The email based on the first data line is shown below. Carefully check if the addressing and dynamic fields are correct.<br/>
+                    If everything is OK, press the button to send <i>all</i> emails.</br>
+                    If something is wrong, modify the email and review again.
+                </p>
+                <hr>
+                <blockquote id="email_review_content">
+                    
+                </blockquote>
+
+                <button type="button" id="button_send_emails" class="btn btn-danger">Looks good, send all emails</button>
             </div>
         </div>
 
@@ -165,7 +180,51 @@ function parse_csv() {
                 $('#step_compose').show();
                 $('html,body').animate({scrollTop: $('a[name=compose]').offset().top},'slow');
             });
+
+            $('#button_review').on("click", review_email);
         });
+
+        function replace_dynamic_fields(input_string, data_row) {
+            for (var dynamic_field in window.csv2mail.fields) {
+                input_string = input_string.split(dynamic_field).join(window.csv2mail.data[data_row][window.csv2mail.fields[dynamic_field]]);
+            }
+
+            return input_string;
+        }
+
+        function review_email() {
+            var email_name = $('#email_name').val();
+            var email_address = $('#email_address').val();
+            var email_recipient_field = parseInt($('#email_recipient_field').val());
+            var email_subject = $('#email_subject').val();
+            var email_body = $('#email_body').val();
+
+            if (email_name == '') {
+                alert("First enter a sender name");
+                return;
+            }
+            if (email_address == '') {
+                alert("First enter a sender address");
+                return;
+            }
+            if (email_subject == '') {
+                alert("First enter a subject line");
+                return;
+            }
+            if (email_body == '') {
+                alert("First enter a message body");
+                return;
+            }
+
+            var review_html = "From: " + email_name + " &lt;" + email_address + "&gt;<br/>";
+            review_html += "To: " + window.csv2mail.data[0][email_recipient_field] + "<br/>";
+            review_html += "Subject: " + replace_dynamic_fields(email_subject, 0) + "<br/><br/>";
+            review_html += replace_dynamic_fields(email_body, 0).split("\n").join("<br/>");
+
+            $('#email_review_content').html(review_html);
+            $('#step_review').show();
+            $('html,body').animate({scrollTop: $('a[name=review]').offset().top},'slow');
+        }
     </script>
  
     </body>
