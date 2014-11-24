@@ -59,6 +59,7 @@ function send_mail() {
     $headers = 'From: ' . $_POST['from_name'] . ' <' . $_POST['from_address'] . '>';
 
     mail($_POST['recipient'], $_POST['subject'], $_POST['body'], $headers);
+    echo json_encode(array());
 }
 ?>
 
