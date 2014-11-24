@@ -3,7 +3,7 @@
 // Action dispatcher
 //////////////////////////////
 if ($_SERVER['REQUEST_METHOD'] != 'GET') {
-    $actions = array('parse_csv');
+    $actions = array('parse_csv', 'send_mail');
     if (isset($_GET['action']) && in_array($_GET['action'], $actions) && function_exists($_GET['action'])) {
         call_user_func($_GET['action']);
         exit();
@@ -32,6 +32,33 @@ function parse_csv() {
     } else {
         echo json_encode(array('error' => 'Please upload a csv file'));
     }
+}
+
+function send_mail() {
+    if (!isset($_POST['from_name']) || $_POST['from_name']=='') {
+        echo json_encode(array('error' => 'The sender name is not passed.'));
+        return;
+    }
+    if (!isset($_POST['from_address']) || $_POST['from_address']=='') {
+        echo json_encode(array('error' => 'The sender email is not passed.'));
+        return;
+    }
+    if (!isset($_POST['recipient']) || $_POST['recipient']=='') {
+        echo json_encode(array('error' => 'The recipient email is not passed.'));
+        return;
+    }
+    if (!isset($_POST['subject']) || $_POST['subject']=='') {
+        echo json_encode(array('error' => 'The subject is not passed.'));
+        return;
+    }
+    if (!isset($_POST['body']) || $_POST['body']=='') {
+        echo json_encode(array('error' => 'The email body is not passed.'));
+        return;
+    }
+
+    $headers = 'From: ' . $_POST['from_name'] . ' <' . $_POST['from_address'] . '>';
+
+    mail($_POST['recipient'], $_POST['subject'], $_POST['body'], $headers);
 }
 ?>
 
@@ -134,6 +161,23 @@ function parse_csv() {
 
                 <button type="button" id="button_send_emails" class="btn btn-danger">Looks good, send all emails</button>
             </div>
+
+            <div class="modal fade" id="modal_progress">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h4 class="modal-title">Sending in progress (one email per second)</h4>
+                  </div>
+                  <div class="modal-body">
+                    <p>The following emails have been sent:</p>
+                    <p id="sent_list"></p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="button_progress_close" style="display:none;">Close</button>
+                  </div>
+                </div><!-- /.modal-content -->
+              </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
         </div>
 
 
@@ -182,6 +226,7 @@ function parse_csv() {
             });
 
             $('#button_review').on("click", review_email);
+            $('#button_send_emails').on("click", send_emails);
         });
 
         function replace_dynamic_fields(input_string, data_row) {
@@ -224,6 +269,44 @@ function parse_csv() {
             $('#email_review_content').html(review_html);
             $('#step_review').show();
             $('html,body').animate({scrollTop: $('a[name=review]').offset().top},'slow');
+        }
+
+        function send_emails() {
+            if (!confirm("Are you sure you want to send all emails?")) return;
+            $('#sent_list').html("");
+            $('#button_progress_close').hide();
+            $('#modal_progress').modal('show');
+            send_email(0);
+        }
+
+        function send_email(idx) {
+            // This function automatically sets a timeout to send the next email
+            // So calling send_email(3) will send email 3, 4, 5, ... , N
+            var post_data = {};
+            post_data['from_name'] = $('#email_name').val();
+            post_data['from_address'] = $('#email_address').val();
+            post_data['recipient'] = window.csv2mail.data[idx][parseInt($('#email_recipient_field').val())];
+            post_data['subject'] = replace_dynamic_fields($('#email_subject').val(), idx);
+            post_data['body'] = replace_dynamic_fields($('#email_body').val(), idx);
+
+            $.post("index.php?action=send_mail", post_data)
+                .done(function(data) {
+                    feedback = jQuery.parseJSON(data);
+                    if ('error' in feedback) {
+                        $('#sent_list').html($('#sent_list').html() + "<br/><b>ABORTED DUE TO ERROR:</b><br/>" + feedback.error);
+                        $('#button_progress_close').show(); 
+                        return;
+                    } else {
+                        $('#sent_list').html($('#sent_list').html() + '&nbsp;' + post_data['recipient']);
+                        next_idx = idx + 1;
+                        if (next_idx < window.csv2mail.data.length) {
+                            setTimeout(function(){send_email(next_idx);}, 1000);
+                        } else {
+                            $('#sent_list').html($('#sent_list').html() + "<br/><b>ALL DONE!</b>");
+                            $('#button_progress_close').show(); 
+                        }
+                    }
+                });
         }
     </script>
  
