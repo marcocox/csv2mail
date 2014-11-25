@@ -26,7 +26,7 @@ function parse_csv() {
         }
         $column_names = str_getcsv($csv_lines[0], $delimiter);
         $data = array();
-        for($i=1; $i<count($csv_lines); $i++) $data[] = str_getcsv($csv_lines[$i], $delimiter);
+        for($i=1; $i<count($csv_lines); $i++) $data[] = array_map("trim", str_getcsv($csv_lines[$i], $delimiter));
         echo json_encode(array( 'column_names' => $column_names,
                                 'data' => $data));
     } else {
