@@ -59,8 +59,9 @@ function send_mail() {
     $headers = array();
     $headers[] = 'From: ' . $_POST['from_name'] . ' <' . $_POST['from_address'] . '>';
     $headers[] = 'To: ' . $_POST['recipient'];
-    $headers[] = 'X-Mailer: php';
     if (isset($_POST['bcc']) && $_POST['bcc']) $headers[] =  "Bcc: " . $_POST['bcc'];
+    if (isset($_POST['cc']) && $_POST['cc']) $headers[] =  "Cc: " . $_POST['cc'];
+    $headers[] = 'X-Mailer: php';
 
     mail($_POST['recipient'], $_POST['subject'], $_POST['body'], implode("\r\n", $headers));
     echo json_encode(array());
@@ -122,8 +123,8 @@ function send_mail() {
             <div class="step" id="step_compose" style="display:none;">
                 <a name="compose"></a><h1>Step 2: Compose email</h1>
                 <p class="text-muted">
-                    Select the roles of the fields. Use {field_name} in the email content.<br/>
-                    Available tags: <div id="available_tags"></div>
+                    All text input fields may contain dynamic fields. Use {field_name} where you want to insert the value of a dynamic field.<br/>
+                    Available dynamic fields: <div id="available_tags"></div>
                 </p>
                 <hr>
                 <form role="form" id="form_compose">
@@ -141,9 +142,14 @@ function send_mail() {
                         <p class="help-block">Select the csv column that contains the email addresses of the recipients.</p>
                     </div>
                     <div class="form-group">
+                        <label for="email_cc">CC:</label>
+                        <input type="email" class="form-control" id="email_cc" name="email_cc">
+                        <p class="help-block">Optionally add one or more CC address(es). Leave empty to ignore.</p>
+                    </div>
+                    <div class="form-group">
                         <label for="email_bcc">BCC:</label>
                         <input type="email" class="form-control" id="email_bcc" name="email_bcc">
-                        <p class="help-block">Optionally add a bcc address. Leave empty to ignore.</p>
+                        <p class="help-block">Optionally add one or more CC address(es). Leave empty to ignore.</p>
                     </div>
                     <div class="form-group">
                         <label for="email_subject">Subject:</label>
@@ -251,6 +257,7 @@ function send_mail() {
             var email_name = $('#email_name').val();
             var email_address = $('#email_address').val();
             var email_recipient_field = parseInt($('#email_recipient_field').val());
+            var email_cc = $('#email_cc').val();
             var email_bcc = $('#email_bcc').val();
             var email_subject = $('#email_subject').val();
             var email_body = $('#email_body').val();
@@ -272,9 +279,10 @@ function send_mail() {
                 return;
             }
 
-            var review_html = "From: " + email_name + " &lt;" + email_address + "&gt;<br/>";
+            var review_html = "From: " + replace_dynamic_fields(email_name, 0) + " &lt;" + replace_dynamic_fields(email_address, 0) + "&gt;<br/>";
             review_html += "To: " + window.csv2mail.data[0][email_recipient_field] + "<br/>";
-            if (email_bcc != "") review_html += "Bcc: " + email_bcc + "<br/>";
+            if (email_cc != "") review_html += "Cc: " + replace_dynamic_fields(email_cc, 0) + "<br/>";
+            if (email_bcc != "") review_html += "Bcc: " + replace_dynamic_fields(email_bcc, 0) + "<br/>";
             review_html += "Subject: " + replace_dynamic_fields(email_subject, 0) + "<br/><br/>";
             review_html += replace_dynamic_fields(email_body, 0).split("\n").join("<br/>");
 
@@ -295,10 +303,11 @@ function send_mail() {
             // This function automatically sets a timeout to send the next email
             // So calling send_email(3) will send email 3, 4, 5, ... , N
             var post_data = {};
-            post_data['from_name'] = $('#email_name').val();
-            post_data['from_address'] = $('#email_address').val();
+            post_data['from_name'] = replace_dynamic_fields($('#email_name').val(), idx);
+            post_data['from_address'] = replace_dynamic_fields($('#email_address').val(), idx);
             post_data['recipient'] = window.csv2mail.data[idx][parseInt($('#email_recipient_field').val())];
-            post_data['bcc'] = $('#email_bcc').val();
+            post_data['cc'] = replace_dynamic_fields($('#email_cc').val(), idx);
+            post_data['bcc'] = replace_dynamic_fields($('#email_bcc').val(), idx);
             post_data['subject'] = replace_dynamic_fields($('#email_subject').val(), idx);
             post_data['body'] = replace_dynamic_fields($('#email_body').val(), idx);
 
