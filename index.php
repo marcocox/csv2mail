@@ -18,15 +18,22 @@ if ($_SERVER['REQUEST_METHOD'] != 'GET') {
 //////////////////////////////
 function parse_csv() {
     if (isset($_FILES['csvfile'])) {
-        $csv_lines = file($_FILES['csvfile']['tmp_name']);
+        $csv_file = $_FILES['csvfile']['tmp_name'];
         $delimiter = (isset($_POST['delimiter']) && $_POST['delimiter']) ? $_POST['delimiter'] : ',';
-        if (count($csv_lines) < 2) {
+
+        $fh = fopen($csv_file, 'r');
+        $column_names = array_map("trim", fgetcsv($fh, 0, $delimiter));
+        $data = array();
+        while (($csv_line = fgetcsv($fh, 0, $delimiter)) !== false) {
+            $data[] = array_map("trim", $csv_line);    
+        }
+        fclose($fh);
+
+        if (count($data) < 1) {
             echo json_encode(array('error' => 'The csv file should at least contain 2 lines (column names + data line)'));
             exit();
         }
-        $column_names = str_getcsv($csv_lines[0], $delimiter);
-        $data = array();
-        for($i=1; $i<count($csv_lines); $i++) $data[] = array_map("trim", str_getcsv($csv_lines[$i], $delimiter));
+
         echo json_encode(array( 'column_names' => $column_names,
                                 'data' => $data));
     } else {
@@ -62,8 +69,8 @@ function send_mail() {
     if (isset($_POST['bcc']) && $_POST['bcc']) $headers[] =  "Bcc: " . $_POST['bcc'];
     if (isset($_POST['cc']) && $_POST['cc']) $headers[] =  "Cc: " . $_POST['cc'];
     $headers[] = 'X-Mailer: php';
-
-    mail($_POST['recipient'], $_POST['subject'], $_POST['body'], implode("\r\n", $headers));
+    
+    mail($_POST['recipient'], utf8_decode(stripslashes($_POST['subject'])), utf8_decode(stripslashes($_POST['body'])), implode("\r\n", $headers));
     echo json_encode(array());
 }
 ?>
@@ -149,7 +156,7 @@ function send_mail() {
                     <div class="form-group">
                         <label for="email_bcc">BCC:</label>
                         <input type="email" class="form-control" id="email_bcc" name="email_bcc">
-                        <p class="help-block">Optionally add one or more CC address(es). Leave empty to ignore.</p>
+                        <p class="help-block">Optionally add one or more BCC address(es). Leave empty to ignore.</p>
                     </div>
                     <div class="form-group">
                         <label for="email_subject">Subject:</label>
@@ -319,7 +326,7 @@ function send_mail() {
                         $('#button_progress_close').show(); 
                         return;
                     } else {
-                        $('#sent_list').html($('#sent_list').html() + '&nbsp;' + post_data['recipient']);
+                        $('#sent_list').html($('#sent_list').html() + ' ' + post_data['recipient']);
                         next_idx = idx + 1;
                         if (next_idx < window.csv2mail.data.length) {
                             setTimeout(function(){send_email(next_idx);}, 1000);
