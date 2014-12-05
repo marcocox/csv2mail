@@ -65,7 +65,6 @@ function send_mail() {
 
     $headers = array();
     $headers[] = 'From: ' . $_POST['from_name'] . ' <' . $_POST['from_address'] . '>';
-    $headers[] = 'To: ' . $_POST['recipient'];
     if (isset($_POST['bcc']) && $_POST['bcc']) $headers[] =  "Bcc: " . $_POST['bcc'];
     if (isset($_POST['cc']) && $_POST['cc']) $headers[] =  "Cc: " . $_POST['cc'];
     $headers[] = 'X-Mailer: php';
