@@ -1,7 +1,11 @@
 <?php
-require('config.php');
 require('PHPMailer/PHPMailerAutoload.php');
 
+// Load config
+if (!file_exists('config.php')) {
+    die('Duplicate config.template.php to config.php and insert your SMTP credentials in that file.');
+}
+require('config.php');
 if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_PORT) {
     die('Please enter the SMTP login credentials in config.php');
 }

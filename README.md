@@ -29,5 +29,5 @@ Installation
 ------------
 
 1. `git clone --recursive git@github.com:marcocox/csv2mail.git`
-2. Insert your SMTP login credentials in `config.php`.
+2. Duplicate `config.template.php` to `config.php` and insert your SMTP credentials in that file.
 3. Browse to the correct address to access the web interface and get started.
