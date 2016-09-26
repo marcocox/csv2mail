@@ -3,7 +3,7 @@ csv2mail
 
 Read a csv file & send bulk dynamical emails through a simple web interface.
 
-This simple 1 file php tool lets you send templated emails in bulk based on a csv (Excel) file. The recipients' addresses and the values of the dynamic fields are read from a csv file. It works with all csv formats as long as every row is translated in an email and every dynamic field is containted within its own column. 
+This simple php script lets you send templated emails in bulk based on a CSV file. The recipients' addresses and the values of the dynamic fields are read from a CSV file. It works with all CSV formats as long as every row is translated in an email and every dynamic field is containted within its own column.
 
 Example/screenshots
 -------------------
@@ -28,4 +28,6 @@ This tool should **not** be publicly available as it allows bulk emailing and ha
 Installation
 ------------
 
-Just upload index.php to a webserver that supports PHP 5. Browse to the correct address to access the web interface and get started.
+1. `git clone --recursive git@github.com:marcocox/csv2mail.git`
+2. Insert your SMTP login credentials in `config.php`.
+3. Browse to the correct address to access the web interface and get started.

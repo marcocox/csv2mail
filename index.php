@@ -1,7 +1,15 @@
 <?php
-//////////////////////////////
-// Action dispatcher
-//////////////////////////////
+require('config.php');
+require('PHPMailer/PHPMailerAutoload.php');
+
+if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_PORT) {
+    die('Please enter the SMTP login credentials in config.php');
+}
+
+
+/*************************
+ * Action dispatcher
+ *************************/
 if ($_SERVER['REQUEST_METHOD'] != 'GET') {
     $actions = array('parse_csv', 'send_mail');
     if (isset($_GET['action']) && in_array($_GET['action'], $actions) && function_exists($_GET['action'])) {
@@ -13,9 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] != 'GET') {
     }
 }
 
-//////////////////////////////
-// Action handlers
-//////////////////////////////
+/*************************
+ * Action handlers
+ *************************/
 function parse_csv() {
     if (isset($_FILES['csvfile'])) {
         $csv_file = $_FILES['csvfile']['tmp_name'];
@@ -25,7 +33,7 @@ function parse_csv() {
         $column_names = array_map("trim", fgetcsv($fh, 0, $delimiter));
         $data = array();
         while (($csv_line = fgetcsv($fh, 0, $delimiter)) !== false) {
-            $data[] = array_map("trim", $csv_line);    
+            $data[] = array_map("trim", $csv_line);
         }
         fclose($fh);
 
@@ -63,13 +71,32 @@ function send_mail() {
         return;
     }
 
-    $headers = array();
-    $headers[] = 'From: ' . $_POST['from_name'] . ' <' . $_POST['from_address'] . '>';
-    if (isset($_POST['bcc']) && $_POST['bcc']) $headers[] =  "Bcc: " . $_POST['bcc'];
-    if (isset($_POST['cc']) && $_POST['cc']) $headers[] =  "Cc: " . $_POST['cc'];
-    $headers[] = 'X-Mailer: php';
-    
-    mail($_POST['recipient'], utf8_decode(stripslashes($_POST['subject'])), utf8_decode(stripslashes($_POST['body'])), implode("\r\n", $headers));
+    $mail = new PHPMailer;
+    $mail->isSMTP();
+    $mail->Host = SMTP_HOST;
+    $mail->SMTPAuth = true;
+    $mail->Username = SMTP_USER;
+    $mail->Password = SMTP_PASS;
+    $mail->SMTPSecure = 'tls';
+    $mail->Port = SMTP_PORT;
+    $mail->setFrom($_POST['from_address'], $_POST['from_name']);
+
+    // Message specific fields
+    $mail->addAddress($_POST['recipient']);
+    if (isset($_POST['cc']) && $_POST['cc']) {
+        $mail->addCC($_POST['cc']);
+    }
+    if (isset($_POST['bcc']) && $_POST['bcc']) {
+        $mail->addBCC($_POST['bcc']);
+    }
+    $mail->Subject = utf8_decode(stripslashes($_POST['subject']));
+    $mail->Body = utf8_decode(stripslashes($_POST['body']));
+
+    if(!$mail->send()) {
+        echo json_encode(array('error' => 'Mailer error: ' . $mail->ErrorInfo));
+        return;
+    }
+
     echo json_encode(array());
 }
 ?>
@@ -96,7 +123,7 @@ function send_mail() {
             <a name="step1"></a><h1>Step 1: read csv file</h1>
             <p class="text-muted">Upload a csv file containing the email addresses and dynamic field values to get started.</p>
             <hr>
-            <form role="form" id="form_csv" action="index.php?action=parse_csv" method="post" enctype="multipart/form-data"> 
+            <form role="form" id="form_csv" action="index.php?action=parse_csv" method="post" enctype="multipart/form-data">
               <div class="form-group">
                 <label for="csvInputFile">CSV file</label>
                 <input type="file" id="csvInputFile" name="csvfile">
@@ -178,7 +205,7 @@ function send_mail() {
                 </p>
                 <hr>
                 <blockquote id="email_review_content">
-                    
+
                 </blockquote>
 
                 <button type="button" id="button_send_emails" class="btn btn-danger">Looks good, send all emails</button>
@@ -322,7 +349,7 @@ function send_mail() {
                     feedback = jQuery.parseJSON(data);
                     if ('error' in feedback) {
                         $('#sent_list').html($('#sent_list').html() + "<br/><b>ABORTED DUE TO ERROR:</b><br/>" + feedback.error);
-                        $('#button_progress_close').show(); 
+                        $('#button_progress_close').show();
                         return;
                     } else {
                         $('#sent_list').html($('#sent_list').html() + ' ' + post_data['recipient']);
@@ -331,12 +358,12 @@ function send_mail() {
                             setTimeout(function(){send_email(next_idx);}, 1000);
                         } else {
                             $('#sent_list').html($('#sent_list').html() + "<br/><b>ALL DONE!</b>");
-                            $('#button_progress_close').show(); 
+                            $('#button_progress_close').show();
                         }
                     }
                 });
         }
     </script>
- 
+
     </body>
 </html>
